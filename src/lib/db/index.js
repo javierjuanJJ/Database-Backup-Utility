@@ -90,7 +90,15 @@ function testConnection(type, options = {}) {
     const uri = buildUri(type, config);
     return mongodbConn.testConnection({ ...config, uri });
   }
-  if (type === 'sqlite') return sqliteConn.testConnection(config);
+  if (type === 'sqlite') {
+    // node:sqlite es síncrono por naturaleza; se envuelve como promesa para
+    // que el dispatcher tenga una API uniforme (app.js encadena con .then).
+    try {
+      return Promise.resolve(sqliteConn.testConnection(config));
+    } catch (err) {
+      return Promise.reject(err);
+    }
+  }
 
   throw new AppError('UNSUPPORTED_DATABASE', `Motor "${type}" no soportado.`);
 }

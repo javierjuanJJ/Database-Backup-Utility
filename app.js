@@ -16,7 +16,8 @@ const { Command } = require('commander');
 const pkg = require('./package.json');
 const CONSTS = require('./src/consts');
 const db = require('./src/lib/db');
-const { formatError } = require('./src/utils/helpers');
+const { backupDatabase } = require('./src/services/backup');
+const { formatError, formatBytes } = require('./src/utils/helpers');
 
 const program = new Command();
 
@@ -42,11 +43,6 @@ function onError(err) {
   process.exit(CONSTS.EXIT_CODES.FAILURE);
 }
 
-/**
- * Arranque en TOP-LEVEL (regla 3). exitOverride hace que Commander lance un
- * CommanderError en lugar de cerrar el proceso, permitiendo el manejo central.
- * La cadena .then/.catch sustituye a async/await y a un método run/main.
- */
 /**
  * Define las opciones comunes de conexión que comparten todos los comandos.
  */
@@ -87,6 +83,45 @@ const cmdTestConnection = program
 
 attachConnectionOptions(cmdTestConnection).action(testConnectionAction);
 
+/**
+ * Acción del comando backup. No usa funciones async ni run/main: devuelve la
+ * cadena de promesas que Commander resuelve en el top-level.
+ */
+function backupAction(database, options) {
+  let promise;
+  try {
+    promise = backupDatabase({ ...options, database }).then(function onOk(result) {
+      process.stdout.write(
+        `Backup completado -> ${result.file} (${formatBytes(result.sizeBytes)}` +
+          `${result.compressed ? ', comprimido' : ''}).\n`
+      );
+      process.stdout.write(`  checksum sha256: ${result.checksum}\n`);
+    });
+  } catch (err) {
+    onError(err);
+    return undefined;
+  }
+  return promise;
+}
+
+const cmdBackup = program
+  .command('backup <database>')
+  .description(CONSTS.MESSAGES.CMD_BACKUP_DESC)
+  .option('--type <type>', 'tipo de backup: full | incremental | differential', 'full')
+  .option('--table <table>', 'tabla/colección objetivo (backup selectivo/diferencial)')
+  .option('--collection <collection>', 'colección MongoDB (backup selectivo)')
+  .option('--since <since>', 'fecha ISO para incremental/diferencial (corte temporal)')
+  .option('--since-field <field>', 'columna/campo de sello temporal (def.: updated_at|updatedAt)')
+  .option('--out-dir <dir>', 'directorio de salida', CONSTS.DEFAULTS.OUT_DIR)
+  .option('--no-compress', 'no comprimir el artefacto');
+
+attachConnectionOptions(cmdBackup).action(backupAction);
+
+/**
+ * Arranque en TOP-LEVEL (regla 3). exitOverride hace que Commander lance un
+ * CommanderError en lugar de cerrar el proceso, permitiendo el manejo central.
+ * La cadena .then/.catch sustituye a async/await y a un método run/main.
+ */
 program.exitOverride();
 
 program.parseAsync(process.argv).then(onSuccess, onError).catch(onError);
