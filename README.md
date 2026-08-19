@@ -18,7 +18,7 @@ cada característica se especifica previamente en `spec/features/`, se documenta
 | 004 | [Logging & Notifications](spec/features/004-logging-and-notifications/spec.md) | Logs detallados (timestamps, duración, estado) y Slack opcional. |
 | 005 | [Restore Operations](spec/features/005-restore-operations/spec.md) | Restauración completa y selectiva desde local y nube. |
 
-Requisitos previos: Node.js >= 20, y los binarios de volcado de cada motor
+Requisitos previos: Node.js >= 22.5, y los binarios de volcado de cada motor
 (`mysqldump`, `pg_dump`, `mongodump`/`mongorestore`). SQLite no requiere binarios externos.
 
 ## Instalación

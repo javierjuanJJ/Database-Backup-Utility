@@ -7,7 +7,7 @@ módulos, los comandos disponibles y las convenciones que todo contribuyente deb
 
 | Capa | Tecnología | Versión | Justificación |
 |------|-----------|---------|---------------|
-| Runtime | Node.js | **>= 20 (LTS recomendado: 22)** | Streams nativos, `fetch` global, `node:sqlite` (22+), `--watch`. |
+| Runtime | Node.js | **>= 22.5** | Streams nativos, `fetch` global, `node:sqlite` (requerido para SQLite), `--watch`. |
 | CLI | Commander.js | 12.x | Definición declarativa de comandos, opciones y ayuda con salida estándar. |
 | Testing | Vitest | 3.x | Runner moderno con ESM/CJS, mocking sencillo y *watch mode*. |
 | Lint | ESLint | 9.x (flat config) | Reglas de estilo y detección de errores en código común. |
