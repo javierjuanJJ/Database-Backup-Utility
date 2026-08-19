@@ -1,0 +1,42 @@
+// Prisma schema — modelo de dominio y convenciones de conexión.
+//
+// Este schema es la referencia del proyecto para el formato de conexión de los
+// motores relacionales (las URLs documentadas por Prisma) y modela las entidades
+// de metadata del dominio (Backup, BackupLog).
+//
+// Para generar el cliente: npm run generate
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Backup {
+  id          String   @id @default(uuid())
+  database    String   // mysql | postgres | mongodb | sqlite
+  dbName      String
+  backupType  String   // full | incremental | differential
+  status      String   // success | failed
+  file        String
+  storage     String   // local | s3 | gcs | azure
+  sizeBytes   BigInt
+  checksum    String
+  startedAt   DateTime @default(now())
+  finishedAt  DateTime?
+  durationMs  Int?
+  logs        BackupLog[]
+}
+
+model BackupLog {
+  id        String   @id @default(uuid())
+  backupId  String
+  backup    Backup   @relation(fields: [backupId], references: [id])
+  level     String   // info | warn | error
+  event     String   // START | END | ERROR | NOTIFY
+  message   String
+  createdAt DateTime @default(now())
+}

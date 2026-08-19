@@ -1,0 +1,53 @@
+{
+  "name": "database-backup-utility",
+  "version": "1.0.0",
+  "description": "CLI universal de backup y restauración para MySQL, PostgreSQL, MongoDB y SQLite, con almacenamiento local y en la nube (AWS S3, Google Cloud Storage, Azure Blob Storage).",
+  "license": "MIT",
+  "type": "commonjs",
+  "main": "app.js",
+  "bin": {
+    "dbu": "app.js"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "dev": "node --watch app.js",
+    "start": "node app.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint .",
+    "build": "node scripts/check-all.js",
+    "generate": "prisma generate",
+    "package": "node scripts/package-zip.js"
+  },
+  "keywords": [
+    "backup",
+    "restore",
+    "database",
+    "mysql",
+    "postgresql",
+    "mongodb",
+    "sqlite",
+    "aws",
+    "gcs",
+    "azure",
+    "cli"
+  ],
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1113.0",
+    "@azure/storage-blob": "^12.33.0",
+    "@google-cloud/storage": "^8.0.1",
+    "commander": "^15.0.0",
+    "mongodb": "^7.5.0",
+    "mysql2": "^3.23.3",
+    "pg": "^8.23.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "archiver": "^8.0.0",
+    "eslint": "^10.8.1",
+    "globals": "^17.11.0",
+    "vitest": "^4.1.11"
+  }
+}

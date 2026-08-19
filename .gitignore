@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Output artifacts
+backups/
+logs/
+*.dump
+*.sql
+*.gz
+*.tgz
+*.tar.gz
+!spec/**/*.dump
+
+# Prisma generated client
+prisma/client/
+
+# Coverage y tests
+coverage/
+
+# Packaging
+database-backup-utility-spec.zip
+dist/
