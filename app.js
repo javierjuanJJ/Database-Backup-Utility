@@ -16,7 +16,7 @@ const { Command } = require('commander');
 const pkg = require('./package.json');
 const CONSTS = require('./src/consts');
 const db = require('./src/lib/db');
-const { backupDatabase } = require('./src/services/backup');
+const { backupDatabase, listBackups } = require('./src/services/backup');
 const { formatError, formatBytes } = require('./src/utils/helpers');
 
 const program = new Command();
@@ -84,6 +84,19 @@ const cmdTestConnection = program
 attachConnectionOptions(cmdTestConnection).action(testConnectionAction);
 
 /**
+ * Añade las opciones de almacenamiento a un comando.
+ */
+function attachStorageOptions(command) {
+  return command
+    .option('--storage <kind>', 'almacenamiento: local | s3 | gcs | azure', 'local')
+    .option('--bucket <bucket>', 'bucket en la nube (S3/GCS)')
+    .option('--container <container>', 'contenedor Azure Blob')
+    .option('--prefix <prefix>', 'prefijo de las claves en la nube')
+    .option('--key-file <keyFile>', 'ruta al JSON de service account de GCS')
+    .option('--conn-string <connString>', 'connection string de Azure Blob Storage');
+}
+
+/**
  * Acción del comando backup. No usa funciones async ni run/main: devuelve la
  * cadena de promesas que Commander resuelve en el top-level.
  */
@@ -96,6 +109,7 @@ function backupAction(database, options) {
           `${result.compressed ? ', comprimido' : ''}).\n`
       );
       process.stdout.write(`  checksum sha256: ${result.checksum}\n`);
+      process.stdout.write(`  almacenado en ${result.storage}: ${result.storageKey}\n`);
     });
   } catch (err) {
     onError(err);
@@ -115,13 +129,44 @@ const cmdBackup = program
   .option('--out-dir <dir>', 'directorio de salida', CONSTS.DEFAULTS.OUT_DIR)
   .option('--no-compress', 'no comprimir el artefacto');
 
+attachStorageOptions(cmdBackup);
+
 attachConnectionOptions(cmdBackup).action(backupAction);
 
 /**
- * Arranque en TOP-LEVEL (regla 3). exitOverride hace que Commander lance un
- * CommanderError en lugar de cerrar el proceso, permitiendo el manejo central.
- * La cadena .then/.catch sustituye a async/await y a un método run/main.
+ * Acción del comando list-backups.
  */
+function listBackupsAction(options) {
+  let promise;
+  try {
+    promise = listBackups(options).then(function onOk(items) {
+      if (!items || !items.length) {
+        process.stdout.write('No hay backups almacenados.\n');
+        return;
+      }
+      for (const item of items) {
+        process.stdout.write(
+          `  ${item.key}\t${formatBytes(item.size)}` +
+            `${item.modifiedAt ? `\t${item.modifiedAt.toISOString()}` : ''}\n`
+        );
+      }
+      process.stdout.write(`\n${items.length} backup(s) en ${options.storage || 'local'}.\n`);
+    });
+  } catch (err) {
+    onError(err);
+    return undefined;
+  }
+  return promise;
+}
+
+const cmdListBackups = program
+  .command('list-backups')
+  .description(CONSTS.MESSAGES.CMD_LIST_DESC)
+  .option('--out-dir <dir>', 'directorio de salida (almacenamiento local)', CONSTS.DEFAULTS.OUT_DIR);
+
+attachConnectionOptions(cmdListBackups);
+attachStorageOptions(cmdListBackups).action(listBackupsAction);
+
 program.exitOverride();
 
 program.parseAsync(process.argv).then(onSuccess, onError).catch(onError);

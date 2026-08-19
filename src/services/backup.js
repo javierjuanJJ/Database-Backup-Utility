@@ -11,6 +11,7 @@
 
 const db = require('../lib/db');
 const backup = require('../lib/backup');
+const storage = require('../lib/storage');
 const helpers = require('../utils/helpers');
 const CONSTS = require('../consts');
 const pathMod = require('node:path');
@@ -18,6 +19,22 @@ const pathMod = require('node:path');
 function buildBackedId() {
   const crypto = require('node:crypto');
   return crypto.randomUUID();
+}
+
+/** Sube el artefacto al almacenamiento indicado y devuelve la clave. */
+async function storeArtifact(localFile, kind, options) {
+  const store = storage.getStore(kind, options);
+  const config = storage.buildStorageConfig(kind, options);
+  const key = storage.buildKey(config, pathMod.basename(localFile));
+  const uploaded = await store.store(localFile, key);
+  return uploaded.key;
+}
+
+/** Lista los backups disponibles en el almacenamiento. Devuelve una promesa. */
+async function listBackups(options = {}) {
+  const kind = storage.resolveStorageKind(options.storage || 'local');
+  const store = storage.getStore(kind, options);
+  return store.list();
 }
 
 async function backupDatabase(options = {}) {
@@ -48,6 +65,9 @@ async function backupDatabase(options = {}) {
   const checksum = await helpers.sha256File(file);
   const durationMs = Date.now() - startedAt;
 
+  const storageKind = storage.resolveStorageKind(options.storage || 'local');
+  const storageKey = await storeArtifact(file, storageKind, options);
+
   return {
     id,
     status: 'success',
@@ -59,6 +79,8 @@ async function backupDatabase(options = {}) {
     sizeBytes: artifact.sizeBytes,
     compressed: artifact.compressed,
     checksum,
+    storage: storageKind,
+    storageKey,
     durationMs,
     startedAt: new Date(startedAt).toISOString(),
     finishedAt: new Date().toISOString(),
@@ -67,5 +89,7 @@ async function backupDatabase(options = {}) {
 
 module.exports = Object.freeze({
   backupDatabase,
+  listBackups,
+  storeArtifact,
   buildBackedId,
 });

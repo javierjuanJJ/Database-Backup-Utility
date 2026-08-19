@@ -45,24 +45,7 @@ function safeRemove(target) {
 }
 
 /** Copia un archivo local de forma robusta (SQLite). */
-function copyFile(source, dest) {
-  return new Promise((resolve, reject) => {
-    const rs = fs.createReadStream(source);
-    const ws = fs.createWriteStream(dest);
-    rs.on('error', (err) => {
-      ws.destroy();
-      reject(
-        new AppError('DUMP_FAILED', `No se pudo copiar el archivo ${source}.`, {
-          detail: err.message,
-          cause: err,
-        })
-      );
-    });
-    ws.on('error', (err) => reject(err));
-    ws.on('finish', () => resolve(dest));
-    rs.pipe(ws);
-  });
-}
+const copyFile = helpers.copyFile;
 
 /**
  * Genera el artefacto de backup en outDir.
@@ -86,8 +69,11 @@ async function produceArtifact(config, options = {}) {
     }
   } catch (err) {
     safeRemove(rawFile);
-    if (err.code === 'DB_CMD_NOT_FOUND') throw err;
-    throw err;
+    if (err && err.code) throw err;
+    throw new AppError('DUMP_FAILED', `No se pudo copiar el archivo ${command.source}.`, {
+      detail: err.message,
+      cause: err,
+    });
   }
 
   let file = rawFile;

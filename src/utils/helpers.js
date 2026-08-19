@@ -105,6 +105,21 @@ function sha256File(filePath) {
   });
 }
 
+/** Copia un archivo local con streams. */
+function copyFile(source, dest) {
+  return new Promise((resolve, reject) => {
+    const rs = fs.createReadStream(source);
+    const ws = fs.createWriteStream(dest);
+    rs.on('error', (err) => {
+      ws.destroy();
+      reject(err);
+    });
+    ws.on('error', (err) => reject(err));
+    ws.on('finish', () => resolve(dest));
+    rs.pipe(ws);
+  });
+}
+
 /** Ejecuta un comando en un proceso hijo y resuelve con la salida capturada. */
 function runProcess(command, args, options = {}) {
   return new Promise((resolve, reject) => {
@@ -177,5 +192,6 @@ module.exports = Object.freeze({
   isGzipFile,
   sha256File,
   runProcess,
+  copyFile,
   formatError,
 });
