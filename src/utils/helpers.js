@@ -123,10 +123,12 @@ function copyFile(source, dest) {
 /** Ejecuta un comando en un proceso hijo y resuelve con la salida capturada. */
 function runProcess(command, args, options = {}) {
   return new Promise((resolve, reject) => {
+    const useStdinFile = Boolean(options.inputFile);
+    const stdinMode = useStdinFile ? 'pipe' : 'ignore';
     let child;
     try {
       child = spawn(command, args, {
-        stdio: options.stdio || ['ignore', 'pipe', 'pipe'],
+        stdio: [stdinMode, 'pipe', 'pipe'],
         ...options.spawn,
       });
     } catch (err) {
@@ -137,6 +139,9 @@ function runProcess(command, args, options = {}) {
     let stderr = '';
     if (child.stdout) child.stdout.on('data', (d) => (stdout += d.toString()));
     if (child.stderr) child.stderr.on('data', (d) => (stderr += d.toString()));
+    if (useStdinFile && child.stdin) {
+      fs.createReadStream(options.inputFile).pipe(child.stdin);
+    }
     child.on('error', (err) => {
       if (err.code === 'ENOENT') {
         const e = new Error(`Binario no encontrado: ${command}`);

@@ -17,6 +17,7 @@ const pkg = require('./package.json');
 const CONSTS = require('./src/consts');
 const db = require('./src/lib/db');
 const { backupDatabase, listBackups } = require('./src/services/backup');
+const { restoreDatabase } = require('./src/services/restore');
 const { formatError, formatBytes } = require('./src/utils/helpers');
 
 const program = new Command();
@@ -168,6 +169,35 @@ const cmdListBackups = program
 
 attachConnectionOptions(cmdListBackups);
 attachStorageOptions(cmdListBackups).action(listBackupsAction);
+
+/**
+ * Acción del comando restore. Recibe <database> y <source> (posicionales).
+ */
+function restoreAction(database, source, options) {
+  let promise;
+  try {
+    promise = restoreDatabase(database, source, { ...options, database }).then(function onOk(result) {
+      process.stdout.write(`Restauración completada en ${result.target || 'base de datos'}.\n`);
+      process.stdout.write(`  origen: ${result.sourceStorage} (${result.file})\n`);
+    });
+  } catch (err) {
+    onError(err);
+    return undefined;
+  }
+  return promise;
+}
+
+const cmdRestore = program
+  .command('restore <database> <source>')
+  .description(CONSTS.MESSAGES.CMD_RESTORE_DESC)
+  .option('--table <table>', 'restauración selectiva de tabla (si el motor lo permite)')
+  .option('--collection <collection>', 'restauración selectiva de colección MongoDB')
+  .option('--out-dir <dir>', 'directorio de salida para artefactos locales', CONSTS.DEFAULTS.OUT_DIR)
+  .option('--log-dir <dir>', 'directorio de logs', CONSTS.DEFAULTS.LOG_DIR)
+  .option('--slack-webhook <url>', 'webhook de Slack para notificación al finalizar');
+
+attachConnectionOptions(cmdRestore);
+attachStorageOptions(cmdRestore).action(restoreAction);
 
 program.exitOverride();
 
