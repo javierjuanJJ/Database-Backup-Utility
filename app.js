@@ -127,7 +127,9 @@ const cmdBackup = program
   .option('--since <since>', 'fecha ISO para incremental/diferencial (corte temporal)')
   .option('--since-field <field>', 'columna/campo de sello temporal (def.: updated_at|updatedAt)')
   .option('--out-dir <dir>', 'directorio de salida', CONSTS.DEFAULTS.OUT_DIR)
-  .option('--no-compress', 'no comprimir el artefacto');
+  .option('--no-compress', 'no comprimir el artefacto')
+  .option('--log-dir <dir>', 'directorio de logs', CONSTS.DEFAULTS.LOG_DIR)
+  .option('--slack-webhook <url>', 'webhook de Slack para notificación al finalizar');
 
 attachStorageOptions(cmdBackup);
 

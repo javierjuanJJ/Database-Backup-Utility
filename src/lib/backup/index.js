@@ -69,6 +69,12 @@ async function produceArtifact(config, options = {}) {
     }
   } catch (err) {
     safeRemove(rawFile);
+    if (command.mode === 'copy' && err && err.code === 'ENOENT') {
+      throw new AppError('CONNECTION_FAILED', `El archivo SQLite no existe: ${command.source}`, {
+        detail: 'Verifique la ruta indicada con --dbname.',
+        cause: err,
+      });
+    }
     if (err && err.code) throw err;
     throw new AppError('DUMP_FAILED', `No se pudo copiar el archivo ${command.source}.`, {
       detail: err.message,
