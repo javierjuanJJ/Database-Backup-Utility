@@ -2,8 +2,8 @@
 
 **CLI:** `node app.js` o `dbu`
 
-**Total Tests:** 38  
-**Passed:** 37  
+**Total Tests:** 46  
+**Passed:** 45  
 **Failed:** 1 (expected behavior - MongoDB implicit DB creation)  
 **Skipped:** 0
 
@@ -19,6 +19,7 @@
 | MySQL | 8.4.13 (Docker: `mysql:8`) |
 | PostgreSQL | 15.19 (Docker: `postgres:15`) |
 | MongoDB | latest (Docker: `mongo:latest`) |
+| Floci (AWS emulator) | 2.4.0 (Docker: `floci/floci:latest`, puerto 4566) |
 | CLI Framework | commander v15 |
 
 **Binarios de volcado:** Copiados desde contenedores Docker a `./bin/` (mysqldump, pg_dump, psql, mongodump, mongorestore).  
@@ -91,7 +92,21 @@
 
 *\*MongoDB does not fail when connecting to a non-existent database; it creates it implicitly on first write. This is expected MongoDB behavior.*
 
-### Phase 5: Help/Usage Flags
+### Phase 5: Floci - AWS S3 emulador local (puerto 4566)
+
+**Setup:** Bucket `dbu-test-bucket` creado en floci vía AWS CLI.  
+**Configuración:** `AWS_ENDPOINT_URL=http://localhost:4566`, `AWS_ACCESS_KEY_ID=test`, `AWS_SECRET_ACCESS_KEY=test`, `AWS_REGION=us-east-1`, `S3_BUCKET=dbu-test-bucket`
+
+**Nota:** La CLI no tiene flag `--endpoint` para S3, pero el SDK v3 de AWS lee `AWS_ENDPOINT_URL` desde las variables de entorno, permitiendo apuntar a floci sin modificar el código.
+
+| Test | Expected | Actual | Result |
+|------|----------|--------|--------|
+| backup mysql --storage s3 --bucket dbu-test-bucket | success | exit code 0 | PASS |
+| backup postgres --storage s3 --bucket dbu-test-bucket | success | exit code 0 | PASS |
+| list-backups --storage s3 --bucket dbu-test-bucket | success | exit code 0 | PASS |
+| restore mysql from s3 (clave + --bucket) | success | exit code 0 | PASS |
+
+### Phase 7: Help/Usage Flags
 
 | Test | Expected | Actual | Result |
 |------|----------|--------|--------|
@@ -100,7 +115,7 @@
 | -v/--version | success | exit code 0 | PASS |
 | --version | success | exit code 0 | PASS |
 
-### Phase 6: Invalid Values & Edge Cases
+### Phase 8: Invalid Values & Edge Cases
 
 | Test | Expected | Actual | Result |
 |------|----------|--------|--------|
@@ -203,6 +218,7 @@ In `src/lib/backup/index.js` line 66, `env: { ...process.env, ...command.env }` 
 | dbu-mysql | `mysql:8` | 3306 | MySQL backup/restore testing |
 | dbu-postgres | `postgres:15` | 5432 | PostgreSQL backup/restore testing |
 | dbu-mongo | `mongo:latest` | 27017 | MongoDB connection testing |
+| dbu-floci | `floci/floci:latest` | 4566 | AWS S3 emulator local testing |
 
 **Network:** `dbu-net` (Docker bridge network)
 
@@ -210,6 +226,6 @@ In `src/lib/backup/index.js` line 66, `env: { ...process.env, ...command.env }` 
 
 ## Conclusion
 
-The CLI is fully functional with MySQL, PostgreSQL, and MongoDB for connection testing. Backup and restore operations work correctly with MySQL and PostgreSQL (when `PGPASSWORD` is exported in the environment due to the `runProcess` env bug). MongoDB backup/restore could not be tested due to mongodump/mongorestore binary incompatibility with the host CPU (ISA level limitation), but connection testing works correctly.
+The CLI is fully functional with MySQL, PostgreSQL, MongoDB, and Floci (AWS S3 emulator) for connection testing. Backup and restore operations work correctly with MySQL, PostgreSQL, and S3/floci (when `PGPASSWORD` is exported in the environment due to the `runProcess` env bug). MongoDB backup/restore could not be tested due to mongodump/mongorestore binary incompatibility with the host CPU (ISA level limitation), but connection testing works correctly.
 
 All error handling, help flags, default values, and edge cases behave as expected.
